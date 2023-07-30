@@ -1,0 +1,15 @@
+{
+    "id": "myapp",
+    "version": "1.0.0",
+    "vendor": "mycompany",
+    "type": "web",
+    "main": "index.html",
+    "title": "Tetris",
+    "icon": "icon80.png",
+    "largeIcon": "icon130.png",
+    "appDescription": "Classic Tetris game. Enjoy it!",
+    "splashBackground": "splashScreen.png",
+    "bgImage": "bgImage.png",
+    "bgColor": "#d0dbbd",
+    "iconColor": "#343829"
+}

@@ -1,0 +1,265 @@
+@font-face {
+	font-family: font_1; /* Имя шрифта */
+    src: url('fonts/Proxima Nova.ttf'); /* Путь к файлу со шрифтом */
+}
+
+html {
+	overflow: hidden;
+	margin: 0;
+	padding: 0;
+	-webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+	font-family: Proxima Nova;
+}
+
+body {
+	margin: 0;
+	padding: 0;
+	overflow: hidden;
+	webkit-touch-callout: none; /* iOS Safari */
+  	-webkit-user-select: none;   /* Chrome/Safari/Opera */
+  	-khtml-user-select: none;    /* Konqueror */
+  	-moz-user-select: none;      /* Firefox */
+  	-ms-user-select: none;       /* Internet Explorer/Edge */
+  	user-select: none;           /* Non-prefixed version, currently */
+	zoom:  100%;
+}
+
+/* Remove outline on the forms and links */
+:active, :hover, :focus {
+    outline: 0;
+    outline-offset: 0;
+}
+
+#game_viewport {
+	background-color: #29004d;
+	display: none;
+}
+
+#gv_top_block {
+	position: absolute;
+	background-color: #0f0017;
+}
+
+#gv_tb_left_block, #gv_tb_right_block {
+	position: absolute;
+}
+
+#gv_tb_left_block {
+	font-family: font_1;
+	color: white;
+}
+
+#gv_tb_left_block_span {
+	position: absolute;
+}
+
+#gv_tb_right_block {
+
+}
+
+#gv_left_block {
+	background: url('images/metro1.png');
+	background-size: 100%;
+	position: absolute;
+}
+
+#gv_left_block_progress {
+	position: absolute;
+	background: linear-gradient(#D0C100, #FF00DE);
+}
+
+#gv_left_block_progress_hider {
+	position: absolute;
+	background-color: #29004d;
+}
+
+#gv_title_block {
+	position: absolute;
+	font-family: font_1;
+	color: white;
+}
+
+#gv_frame_block {
+	position: absolute;
+}
+
+#gv_frame_block_2 {
+	position: absolute;
+	background: url('images/kino_gor.png');
+	background-size: 100%;
+}
+
+#gv_fb_pic {
+	position: absolute;
+	background: url('images/frames/1.jpg');
+	background-size: 100%;
+}
+
+#gv_buttons_block {
+	position: absolute;
+
+}
+
+.gv_bb_button, .gv_gob_button {
+	position: absolute;
+	background: url('images/Button_off.png');
+	background-size: 100%;
+	cursor: pointer;
+
+}
+
+.gv_bb_button:not(.nohover):hover, .gv_gob_button:not(.nohover):hover {
+	background: url('images/Button_on.png');
+	background-size: 100%;
+}
+
+.gv_bb_button_hover, .gv_gob_button_hover {
+	position: absolute;
+	background: url('images/Button_on.png');
+	background-size: 100%;
+}
+
+
+.gv_bb_button_green {
+	background: url('images/Button_yes.png');
+	background-size: 100%;
+	cursor: pointer;
+	position: absolute;
+}
+
+.gv_bb_button_red {
+	background: url('images/Button_no.png');
+	background-size: 100%;
+	cursor: pointer;
+	position: absolute;
+}
+
+.gv_bb_button_text, .gv_gob_button_text, #link_to_group {
+	color: white;
+	font-family: arial;
+	display: table-cell;
+	vertical-align: middle;
+	text-align: center;
+	box-shadow: 0 0 20px rgba(0,0,0,0.8);
+	border-radius: 20px;
+	text-decoration: none;
+}
+
+#link_to_group {
+	display: none;
+}
+
+#gv_gob_pic_result {
+	color: white;
+	font-family: arial;
+	position: absolute;
+}
+
+
+
+.heart {
+	float: left;
+}
+
+#gv_lb_strike_counter {
+	color: white;
+	font-family: arial;
+	position: absolute;
+	
+	text-align: center;
+}
+
+#gv_strike_block_back, #gv_game_over_block_back {
+	position: absolute;
+	background-color: rgba(0,0,0,0.8);
+	display: none;
+	cursor: pointer;
+}
+
+#gv_game_over_block {
+	position: absolute;
+}
+
+#gv_strike_block {
+	position: absolute;
+	background: url('images/card_1.png');
+	background-size: 100%;
+}
+
+#gv_gob_pic {
+	position: absolute;
+	background: url('images/card_10.png');
+	background-size: 100%;
+}
+
+#gv_gob_buttons_block {
+	background: red;
+}
+
+.hidden {
+	position: absolute;
+	display: none;
+	top: 9999px;
+}
+
+#gv_gob_button_1_hp {
+	background: url('images/Button_hp.png');
+	background-size: 100%;
+}
+
+#gv_gob_button_1_hp:hover, #gv_gob_button_1_hp_hover {
+	background: url('images/Button_hp_on.png');
+	background-size: 100%;
+}
+
+#version_text {
+	position: absolute;
+	color: white;
+	font-family: arial;
+}
+
+#share_button {
+	background: url('images/post_off.png');
+	background-size: 100%;
+	position: absolute;
+	cursor: pointer;
+}
+
+#share_button:hover {
+	background: url('images/post_on.png');
+	background-size: 100%;
+}
+
+
+#fav_button {
+	background: url('images/fav_off.png');
+	background-size: 100%;
+	position: absolute;
+	cursor: pointer;
+}
+
+#fav_button:hover {
+	background: url('images/fav_on.png');
+	background-size: 100%;
+
+}
+
+
+#tv_text, #gv_gov_tv_text {
+  -webkit-animation: blink1 3s linear infinite;
+  animation: blink1 3s linear infinite;
+  color: white;
+	font-family: arial;
+	text-align: center;
+	position: absolute;
+}
+@-webkit-keyframes blink1 {
+  0% { color: rgba(127, 127, 127, 1); }
+  50% { color: rgba(127, 127, 127, 0); }
+  100% { color: rgba(127, 127, 127, 1); }
+}
+@keyframes blink1 {
+  0% { color: rgba(127, 127, 127, 1); }
+  50% { color: rgba(127, 127, 127, 0); }
+  100% { color: rgba(127, 127, 127, 1); }
+}

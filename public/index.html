@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<title>Угадай 99 фильмов</title>
+
+	<!-- Yandex.Metrika counter --> <script type="text/javascript" > (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)}; m[i].l=1*new Date();k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)}) (window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym"); ym(89668945, "init", { clickmap:true, trackLinks:true, accurateTrackBounce:true, webvisor:true }); </script> <noscript><div><img src="https://mc.yandex.ru/watch/89668945" style="position:absolute; left:-9999px;" alt="" /></div></noscript> <!-- /Yandex.Metrika counter -->
+
+	<!-- Конфигурация -->
+	<!--
+	<script type="text/javascript" src="lib/virtualConsole.js"></script>
+	<script type="text/javascript">
+		virtualConsoleInit({})
+	</script>
+	-->
+
+	
+	<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@vkontakte/vkui@4.13.0/dist/cjs/index.min.js"></script>
+
+	<script type="text/javascript" src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
+
+	<script type="text/javascript" src="//vk.com/js/api/xd_connection.js?2"></script>
+	<script type="text/javascript" src="//ad.mail.ru/static/admanhtml/rbadman-html5.min.js"></script>
+	<script type="text/javascript" src="//vk.com/js/api/adman_init.js"></script>
+
+
+	<script type="text/javascript">
+		vkBridge
+                .send('VKWebAppInit')
+                .then(data => {
+                    console.log('[vk] vkBridge inited')
+                    //console.re.log('[vk] vkBridge inited?')
+                    console.log('[vk]', data)
+                    //console.re.log('[vk]', data)
+                })
+                .catch(error => {
+                    // Handling an error
+                });
+	</script>
+	
+
+	
+
+
+	
+	<script type="text/javascript" src="scripts/config.js?118"></script>
+
+	<script type="text/javascript" src="scripts/builder.js?118"></script>
+
+	<link rel="shortcut icon" href="images/ico.ico" type="image/x-icon">
+
+
+	
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+
+
+    
+    <style type="text/css">
+    	#preloader_block {
+			color:  white;
+			width:  100vw;
+			height: 100vh;
+			font-family: "Century Gothic";
+			position: relative;
+		}
+		#inner_preloader_block {
+			margin: 0;
+		    position: absolute;
+		    top: 50%;
+		    left: 50%;
+		    margin-right: -50%;
+		    transform: translate(-50%, -50%)
+		}
+
+		#inner_preloader_block h2 {
+			margin-left: 5%;
+		}
+    </style>
+    <style type="text/css">
+    	
+		#game_preloader {
+			position: absolute;
+			display: block;
+			background-color: #29004d;
+			width: 100vw;
+			height: 100vh;
+		}
+
+		.lds-spinner {
+		  	color: official;
+		  	display: inline-block;
+		  	position: relative;
+		  	width: 80px;
+		  	height: 80px;
+		  	left: 50%;
+			top: 50%;
+			margin:-40px 0 0 -40px;
+		}
+		.lds-spinner div {
+		  	transform-origin: 40px 40px;
+		  	animation: lds-spinner 1.2s linear infinite;
+		}
+		.lds-spinner div:after {
+		  	content: " ";
+		  	display: block;
+		  	position: absolute;
+		  	top: 3px;
+		  	left: 37px;
+		  	width: 6px;
+		  	height: 18px;
+			border-radius: 20%;
+			background: #fff;
+		}
+		.lds-spinner div:nth-child(1) {
+		  	transform: rotate(0deg);
+		  	animation-delay: -1.1s;
+		}
+		.lds-spinner div:nth-child(2) {
+		  	transform: rotate(30deg);
+		  	animation-delay: -1s;
+		}
+		.lds-spinner div:nth-child(3) {
+		  transform: rotate(60deg);
+		  animation-delay: -0.9s;
+		}
+		.lds-spinner div:nth-child(4) {
+		  transform: rotate(90deg);
+		  animation-delay: -0.8s;
+		}
+		.lds-spinner div:nth-child(5) {
+		  transform: rotate(120deg);
+		  animation-delay: -0.7s;
+		}
+		.lds-spinner div:nth-child(6) {
+		  transform: rotate(150deg);
+		  animation-delay: -0.6s;
+		}
+		.lds-spinner div:nth-child(7) {
+		  transform: rotate(180deg);
+		  animation-delay: -0.5s;
+		}
+		.lds-spinner div:nth-child(8) {
+		  transform: rotate(210deg);
+		  animation-delay: -0.4s;
+		}
+		.lds-spinner div:nth-child(9) {
+		  transform: rotate(240deg);
+		  animation-delay: -0.3s;
+		}
+		.lds-spinner div:nth-child(10) {
+		  transform: rotate(270deg);
+		  animation-delay: -0.2s;
+		}
+		.lds-spinner div:nth-child(11) {
+		  transform: rotate(300deg);
+		  animation-delay: -0.1s;
+		}
+		.lds-spinner div:nth-child(12) {
+		  transform: rotate(330deg);
+		  animation-delay: 0s;
+		}
+		@keyframes lds-spinner {
+		  0% {
+		    opacity: 1;
+		  }
+		  100% {
+		    opacity: 0;
+		  }
+		}
+    </style>
+    <link rel="stylesheet" type="text/css" href="style.css?54">
+
+
+    <!-- БИБЛИОТЕКИ -->
+    <script type="text/javascript" src="lib/jquery.min.js"></script>
+    <script type="text/javascript" src="lib/local-storage-fallback.min.js"></script>
+
+</head>
+<body>
+
+
+<div id="game_preloader">
+	<div class="lds-spinner">
+		<div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div>
+	</div>
+</div>
+	
+
+<div id="game_viewport">
+	<div id="version_text">
+		v1.15.10 (118)
+	</div>
+	<div id="gv_top_block">
+		<div id="gv_tb_left_block">
+			<center id ="gv_tb_left_block_span">1 из 99</center>	
+		</div>
+		<div id="gv_tb_right_block">
+			<img id="heart_1" class="heart" src="images/heart_on.png">
+			<img id="heart_2" class="heart" src="images/heart_on.png">
+			<img id="heart_3" class="heart" src="images/heart_on.png">
+		</div>
+	</div>
+	<div id="gv_left_block_progress">
+		
+	</div>
+	<div id="gv_left_block_progress_hider">
+		
+	</div>
+	<div id="gv_left_block">
+		<div id="gv_lb_strike_counter">
+			99
+		</div>
+	</div>
+	<div id="gv_title_block">
+		<center>Какой фильм показан?</center>
+	</div>
+	<div id="gv_frame_block">
+		<div id="gv_fb_pic">
+			
+		</div>
+	</div>
+	<div id="gv_frame_block_2">
+		
+	</div>
+	<div id="gv_buttons_block">
+		<div id="button_1" class="gv_bb_button">
+			<div id="1" class="gv_bb_button_text" onclick="game_core.answer_question(this);">
+				dd
+			</div>
+		</div>
+		<div id="button_2" class="gv_bb_button">
+			<div id="2" class="gv_bb_button_text" onclick="game_core.answer_question(this);">
+				dd
+			</div>
+		</div>
+		<div id="button_3" class="gv_bb_button">
+			<div id="3" class="gv_bb_button_text" onclick="game_core.answer_question(this);">
+				dd
+			</div>
+		</div>
+		<div id="button_4" class="gv_bb_button">
+			<div id="4" class="gv_bb_button_text" onclick="game_core.answer_question(this);">
+				dd
+			</div>
+		</div>
+	</div>
+
+	<div id="gv_strike_block_back" onclick="graph_core.hide_strike_block(); game_core.get_next_answer();">
+		<div id="gv_strike_block">
+		
+		</div>	
+		<div id="tv_text">
+			Нажмите ОК для продолжения
+		</div>
+	</div>
+	
+	<div id="gv_game_over_block_back">
+		<div id="gv_game_over_block">
+			<div id="gv_gob_pic">
+				<div id="gv_gob_pic_result">
+					Угадано фильмов: 24 
+					<br>
+					Ранг: Киану Ривз
+				</div>
+			</div>
+			<div id="gv_gob_button_1" class="gv_gob_button">
+				<a target="_blank" id="link_to_group" href="https://vk.com/ingenium_games" style="position: absolute; color: white;" onclick="graph_core.hide_join_group_block();game_core.get_next_answer();">Вступить!</a>
+				<div  class="gv_gob_button_text" onclick="game_core.restart_game();">
+					Начать заново
+				</div>
+					
+			</div>
+			<div id="gv_gob_button_2" class="gv_gob_button">
+				<div  class="gv_gob_button_text" onclick="game_core.recover_heart();">
+					Получить ❤️ за рекламу
+				</div>
+			</div>
+		</div>
+		
+		<div id="gv_gov_tv_text">
+			Нажмите ОК чтобы начать заново
+		</div>
+
+		<div id="share_button" onclick="tech_core.invite_friend();">
+			
+		</div>
+		<div id="fav_button" onclick="tech_core.add_game_to_menu();">
+			
+		</div>
+	</div>
+	<!--<a href = "https://vk.com/ingenium_games" >Вступить в группу</a>-->
+</div>
+
+
+
+<img src="images/Button_on.png" class="hidden">
+<img src="images/Button_no.png" class="hidden">
+<img src="images/Button_yes.png" class="hidden">
+<img src="images/Button_hp.png" class="hidden">
+<img src="images/Button_hp_on.png" class="hidden">
+<img src="images/card11.png" class="hidden">
+<img src="images/card12.png" class="hidden">
+<img src="images/card13.png" class="hidden">
+<img src="images/card14.png" class="hidden">
+
+<img src="images/fav_on.png" class="hidden">
+<img src="images/post_on.png" class="hidden">
+
+<img id="frame_preloader" src="images/frames/1.jpg" class="hidden">
+<img id="card_preloader" src="images/card_1.png" class="hidden">
+
+<script type="text/javascript" src="scripts/init.js?118"></script>
+<script type="text/javascript" src="scripts/css_setup.js?118"></script>
+<script type="text/javascript" src="scripts/functions.js?118"></script>
+<script type="text/javascript" src="scripts/main.js?118"></script>
+
+</body>
+</html>
