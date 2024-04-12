@@ -55,7 +55,7 @@ const client = new Client({
   ssl: { rejectUnauthorized: false }
 });
 
-client.connect();
+// client.connect();
 
 /*
 var command = `CREATE TABLE system_logs (
@@ -428,7 +428,7 @@ console.log("http://localhost:"+port);
 console.log("https://localhost:8443");
 console.log("https://yandex.ru/games/play/199672/?draft=true&game_url=https://localhost:8443")
 
-
+/*
 const ngrok = require('ngrok');
 (async function() {
   await ngrok.authtoken('1kPiMow2GghbdPhIfPpbXv5DTB3_2sPuTLACk7X68oyGrNxua');
@@ -436,3 +436,4 @@ const ngrok = require('ngrok');
   console.log(url)
   //console.log("https://yandex.ru/games/play/199672/?draft=true&game_url="+url)
 })();
+*/

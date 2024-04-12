@@ -250,7 +250,7 @@ var setup_game_viewport = function(winW, winH, profile) {
 
         set_size('#gv_tb_left_block_span', get_size('#gv_tb_left_block').x, get_size('#gv_tb_left_block').y * 0.4)
         set_pos('#gv_tb_left_block_span', 0, (get_size('#gv_tb_left_block').y - get_size('#gv_tb_left_block_span').y)/2 )
-        $('#gv_tb_left_block').css('font-size', get_size('#gv_tb_left_block_span').y*0.8)
+        $('#gv_tb_left_block').css('font-size', get_size('#gv_tb_left_block_span').y*0.7)
 
         set_size_by_y('#gv_tb_right_block', proportions.mobile_gv_tb_right_block.prop, winH * proportions.mobile_gv_top_block.h)
         set_pos('#gv_tb_right_block', winW - get_size('#gv_tb_right_block').x*1.05)
@@ -333,7 +333,7 @@ var setup_game_viewport = function(winW, winH, profile) {
 
         set_size_by_x('#gv_title_block', proportions.mobile_gv_title_block.prop, winW * proportions.mobile_gv_title_block.w)
         set_pos('#gv_title_block', get_size('#gv_left_block').x+(winW - get_size('#gv_left_block').x - get_size('#gv_title_block').x)/2, get_size('#gv_top_block').y * 1.25 )
-        $('#gv_title_block').css('font-size', get_size('#gv_title_block').y)
+        $('#gv_title_block').css('font-size', get_size('#gv_title_block').y*0.78)
 
         $('#gv_frame_block_2').css('background', "url('images/kino_gor.png')")
         $('#gv_frame_block_2').css('background-size', '100%')
@@ -413,7 +413,7 @@ var setup_game_viewport = function(winW, winH, profile) {
 
     
     $('#version_text').css('font-size', Math.min(winH, winW) * 0.02)
-    set_pos('#version_text', winW - Math.min(winH, winW) * 0.02*6, winH * 0.97)
+    set_pos('#version_text', winW - Math.min(winH, winW) * 0.02*8, winH * 0.97)
 
     $('.gv_bb_button, gv_gob_button, .gv_bb_button_text, .gv_gob_button_text, #link_to_group').css('border-radius', get_size('.gv_gob_button_text, #link_to_group').y * (23/105))
     $('#link_to_group').css('line-height', get_size('#link_to_group').y + 'px')

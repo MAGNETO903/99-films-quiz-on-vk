@@ -1,8 +1,10 @@
+
 // техническое ядро
 var tech_core = {
     "user_type": 'none',
     "sdk": "",
     "sdk_ready": true,
+    "ysdk_flags": 0,
     "platform": PLATFORM_TYPE,
     "mouse_down": false,
     "mouse_x": 0,
@@ -18,10 +20,9 @@ var tech_core = {
         "last_press_back_time": 0
     },
     "init_sdk": function() {
-        //console.re.log('remote log test');
         // инициализция SDK
-        if (PLATFORM_TYPE == 'yandex') {
-           YaGames
+       if (PLATFORM_TYPE == 'yandex') {
+            YaGames
                 .init({
                     adv: {
                         onAdvClose: wasShown => {
@@ -68,7 +69,14 @@ var tech_core = {
                         tech_core.sdk_ready = true
                     }
                     console.log('[yandex] yandex sdk ready')
+                    y_sdk.getFlags()
+                    .then(flags => {
+                        // flags содержит объект с флагами.
+                        console.log('[yndx tech_core] flags: ', flags);
+                        tech_core.ysdk_flags = flags;
+                    });
                 })
+                
         } else if (PLATFORM_TYPE == 'vk') {
             VK.init(function() {
                  // API initialization succeeded
@@ -196,15 +204,14 @@ var tech_core = {
             }(document, 'script', 'gamedistribution-jssdk'));
         }
     },
+    
     "get_group": function(film_num) {
-        
         var group;
         for (var i = 1; i <= groups.length; i++) {
             if (groups[i].includes(film_num) == true) {
                 group = i
             }
         }
-
         return group
     },
     "get_answers": function(film_num) {
@@ -219,11 +226,11 @@ var tech_core = {
     },
     "load_progress": function() {
         if (SHOULD_LOAD_PROGRESS) {
-            var data = window.localStorageFallback.getItem('film_quiz_data')
+            var data = window.localStorageFallback.getItem(STORAGE_FIELD)
 
             if (data != null) {
                 //game_core.data = data
-                game_core.data = JSON.parse(window.localStorageFallback.getItem('film_quiz_data'))
+                game_core.data = JSON.parse(window.localStorageFallback.getItem(STORAGE_FIELD))
 
             }
 
@@ -241,6 +248,10 @@ var tech_core = {
                     }   
                 }
             }
+
+            if (game_core.data.cur_streak_point == undefined) {
+                game_core.data.cur_streak_point = 0;
+            }
         } else {
             game_core.data.available_questions = []
             for (var i = 0; i < FILMS_AMOUNT; i++) {
@@ -252,7 +263,7 @@ var tech_core = {
         
     },
     "save_progress": function() {
-        window.localStorageFallback.setItem('film_quiz_data', JSON.stringify(game_core.data))
+        window.localStorageFallback.setItem(STORAGE_FIELD, JSON.stringify(game_core.data))
     },
     "show_rewarded_video": function(success_callback) {
         tech_core.send_ym_report('rewarded_video_try');
@@ -299,13 +310,12 @@ var tech_core = {
         }
     },
     "send_ym_report": function(msg) {
-        console.log(msg)
         ym(YM_NUMBER, 'reachGoal', msg)
     },
     "show_interstitial_ad": function() {
         
-        if (Date.now() - tech_core.last_interstitial_ad_show > AD_INTERVAL && Date.now() - tech_core.launch_time > AD_DELAY) {
-            //tech_core.send_ym_report('fullscreen_adv_try')
+        if ((Date.now() - tech_core.last_interstitial_ad_show > AD_INTERVAL && Date.now() - tech_core.launch_time > AD_DELAY) || tech_core.ysdk_flags.EXPERIMENT_1 == '1') {
+            tech_core.send_ym_report('fullscreen_adv_try')
             if (tech_core.platform == 'yandex') {
                 tech_core.sdk.adv.showFullscreenAdv({
                     callbacks: {
@@ -353,6 +363,68 @@ var tech_core = {
             }
         }
     },
+    show_interstitial_ad_callback: function(success_callback, fail_callback) {
+        if ((Date.now() - tech_core.last_interstitial_ad_show > AD_INTERVAL && Date.now() - tech_core.launch_time > AD_DELAY) || tech_core.ysdk_flags.EXPERIMENT_1 == '1') {
+            tech_core.send_ym_report('fullscreen_adv_try')
+            if (tech_core.platform == 'yandex') {
+                tech_core.sdk.adv.showFullscreenAdv({
+                    callbacks: {
+                        onOpen: function() {
+
+                            tech_core.last_interstitial_ad_open = Date.now();
+
+                        },
+                        onClose: function(wasShown) {
+                        // some action after close
+                            if (wasShown) {
+                                success_callback();
+                                tech_core.send_ym_report('fullscreen_adv_shown')
+                                tech_core.last_interstitial_ad_show = Date.now();
+                                if (tech_core.last_interstitial_ad_show - tech_core.last_interstitial_ad_show > 3000) {
+                                    tech_core.send_ym_report('fullscreen_adv_3_sec')
+                                }
+                                
+                            } else {
+                                fail_callback();
+                            }
+                        },
+                        onError: function(error) {
+                            // some action on error
+                           fail_callback();
+                        }
+                    }
+                })
+            } else if (tech_core.platform == 'sber') {
+                var onSuccess = function() {
+                    success_callback();
+                    tech_core.last_interstitial_ad_show = Date.now();
+                    tech_core.send_ym_report('fullscreen_adv_shown')
+
+                }
+                var onError = function(e) {
+                    console.log(e);
+                    fail_callback();
+                }
+                window.SberDevicesAdSDK.runBanner({
+                    onSuccess,
+                    onError,
+                });
+            } else if (tech_core.platform == 'vk') {
+                vkBridge.send("VKWebAppCheckNativeAds", {"ad_format": "interstitial"});
+
+                vkBridge.send("VKWebAppShowNativeAds", {ad_format:"interstitial"})
+                    .then(function(data) {
+                        success_callback();
+                        tech_core.last_interstitial_ad_show = Date.now();
+                        tech_core.send_ym_report('fullscreen_adv_shown')
+                    })
+                    .catch(function(error){
+                        console.log(error)
+                        fail_callback();
+                    });
+            }
+        }
+    },
     "open_group": function() {
         
         window.open("https://vk.com/ingenium_games", "_blank");
@@ -385,21 +457,18 @@ var tech_core = {
     },
     "join_group": function() {
         if (tech_core.platform == 'vk') {
-            tech_core.send_ym_report("vk_join_group_btn")
-            console.log("Нажали вступить в группу!")
             vkBridge.send("VKWebAppJoinGroup", {"group_id": 212602446})
             .then(function(data) {
-                console.log(data)
-                
-                if (data.result) {
-                    // чувак успешно вступил в группу
-                    tech_core.send_ym_report('joined_group')
+                if (data.type == 'VKWebAppJoinGroupResult') {
+                    if (data.result) {
+                        // чувак успешно вступил в группу
+                        tech_core.send_ym_report('joined_group')
+                    }
                 }
-                
             })
         }
         graph_core.hide_join_group_block();
-        game_core.get_next_answer();
+        game_core.get_next_answer(false);
         game_core.data.joined_group = true
         tech_core.save_progress();
     },
@@ -409,34 +478,28 @@ var tech_core = {
             var message = ''   
 
             if (game_core.data.streak == 1) {
-                message = 'Мне удалось правильно ответить на 1 вопрос и получить ранг - ЛЕОНАРДО ДИКАПРИО! \n Сможешь также? Дерзай в викторине "Угадай 99 фильмов"!'
+                message = text.VK_POST_MESSAGE_1[graph_core.lang];
             } else if (game_core.data.streak == 3) {
-                message = 'Мне удалось правильно ответить на 3 вопроса подряд и получить ранг - РОБЕРТ ДАУНИ младший! \n Сможешь также? Дерзай в викторине "Угадай 99 фильмов"!'
+                message = text.VK_POST_MESSAGE_2[graph_core.lang];
             } else if (game_core.data.streak == 5) {
-                message = 'Мне удалось правильно ответить на 5 вопросов подряд и получить ранг - УИЛЛ СМИТ! \n Сможешь также? Дерзай в викторине "Угадай 99 фильмов"!'
+                message = text.VK_POST_MESSAGE_3[graph_core.lang];
             } else if (game_core.data.streak == 10) {
-                message = 'Мне удалось правильно ответить на 10 вопросов подряд и получить ранг - СТИВЕН СПИЛБЕРГ! \n Сможешь также? Дерзай в викторине "Угадай 99 фильмов"!'
+                message = text.VK_POST_MESSAGE_4[graph_core.lang];
             } else if (game_core.data.streak == 15) {
-                message = 'Мне удалось правильно ответить на 15 вопросов подряд и получить ранг - ТОМ КРУЗ! \n Сможешь также? Дерзай в викторине "Угадай 99 фильмов"!'
+                message = text.VK_POST_MESSAGE_5[graph_core.lang];
             } else if (game_core.data.streak == 20) {
-                message = 'Мне удалось правильно ответить на 20 вопросов подряд и получить ранг - АНДЖЕЛИНА ДЖОЛИ! \n Сможешь также? Дерзай в викторине "Угадай 99 фильмов"!'
+                message = text.VK_POST_MESSAGE_6[graph_core.lang];
             } else if (game_core.data.streak == 30) {
-                message = 'Мне удалось правильно ответить на 30 вопросов подряд и получить ранг - БРЭД ПИТТ! \n Сможешь также? Дерзай в викторине "Угадай 99 фильмов"!'
+                message = text.VK_POST_MESSAGE_7[graph_core.lang];
             } else if (game_core.data.streak == 50) {
-                message = 'Мне удалось правильно ответить на 50 вопросов подряд и получить ранг - ШЕРЛОК ХОЛМС! \n Сможешь также? Дерзай в викторине "Угадай 99 фильмов"!'
-            } else if (game_core.data.streak == 99) {
-                message = 'Мне удалось правильно ответить на 99 вопросов подряд и получить ранг - ГОЛЛИВУД! \n Сможешь также? Дерзай в викторине "Угадай 99 фильмов"!'
+                message = text.VK_POST_MESSAGE_8[graph_core.lang];
+            } else if (game_core.data.streak == WINNER_STREAK) {
+                message = text.VK_POST_MESSAGE_9[graph_core.lang];
             }
 
             vkBridge.send("VKWebAppShowWallPostBox", {
                 "message": message,
-                "attachments": "https://vk.com/app8226570"
-            }).then(function(data) {
-                if (data.type == 'VKWebAppShowWallPostBoxResult') {
-                    tech_core.send_ym_report('send_vk_post')
-                } else if (data.type == 'VKWebAppShowWallPostBoxFailed') {
-                    tech_core.send_ym_report('failed_send_vk_post')
-                }
+                "attachments": "https://vk.com/app"+VK_APP_ID
             })
             
         }
@@ -450,7 +513,11 @@ var tech_core = {
             "streak_history": ['0'],
             "right_answers": 0,
             "gotten_review": false,
-            "joined_group": false
+            "joined_group": false,
+            "available_questions": [],
+        }
+        for (var i = 0; i < FILMS_AMOUNT; i++) {
+            game_core.data.available_questions.append(i+1)
         }
         tech_core.save_progress();
     },
@@ -516,10 +583,10 @@ var tech_core = {
             if (tech_core.platform == 'yandex') {
                 window.addEventListener("keydown", function(event) {
                     
-                    if (event.code == 'Enter') {
+                    if (event.code == 'Enter' || event.key == 'Enter') {
                         if (tech_core.tv_data.strike_block_opened) {
                             graph_core.hide_strike_block();
-                            game_core.get_next_answer();
+                            game_core.get_next_answer(false);
                         } else if (tech_core.tv_data.cur_window == 'game') {
                             game_core.answer_question(document.getElementById(tech_core.tv_data.cursor_pos))
                         } else if (tech_core.tv_data.cur_window == 'gov_block') {
@@ -543,7 +610,7 @@ var tech_core = {
                         if (tech_core.tv_data.cur_window == 'game') {
                             tech_core.tv_data.cursor_pos = tv_moves[tech_core.tv_data.cur_window][tech_core.tv_data.cursor_pos][event.code]
                             graph_core.tv_update_cursor();
-                        } else if (tech_core.tv_data.cur_window == 'winner_block' || tech_core.tv_data.cur_window == 'exit_block') {
+                        } else if (tech_core.tv_data.cur_window == 'gov_block' || tech_core.tv_data.cur_window == 'winner_block' || tech_core.tv_data.cur_window == 'exit_block') {
                             if (tech_core.tv_data.cursor_pos == 1) {
                                 tech_core.tv_data.cursor_pos = 2
                             } else {
@@ -556,7 +623,6 @@ var tech_core = {
                 })
 
                 tech_core.sdk.onEvent(tech_core.sdk.EVENTS.HISTORY_BACK, () => {
-
                     if (Date.now() - tech_core.tv_data.last_press_back_time < 300) {
                         graph_core.show_exit_block();
                     }
@@ -580,9 +646,9 @@ var graph_core = {
     
     "open_game_viewport": function() {
         //$('#game_viewport').css('display', 'block')
-        $('#game_viewport').fadeIn(1000*ANIMATION)
+        $('#game_viewport').fadeIn(ANIMATION*1000)
     },
-    "change_frame": function(film_num) {
+     "change_frame": function(film_num) {
         var new_url = 'images/frames/' + film_num + '.jpg'
         $('#gv_fb_pic').css('background', 'url('+new_url+')');
         $('#gv_fb_pic').css('background-size', '100%')
@@ -596,10 +662,10 @@ var graph_core = {
         //$('.gv_bb_button:hover').css('background', 'url("images/Button_on.png")')
         //$('.gv_bb_button:hover').css('background-size', '100%')
 
-        $('#button_1 .gv_bb_button_text').text(films[answers[0]][this.lang])
-        $('#button_2 .gv_bb_button_text').text(films[answers[1]][this.lang])
-        $('#button_3 .gv_bb_button_text').text(films[answers[2]][this.lang])
-        $('#button_4 .gv_bb_button_text').text(films[answers[3]][this.lang])
+        $('#button_1 .gv_bb_button_text').text(questions[answers[0]][this.lang])
+        $('#button_2 .gv_bb_button_text').text(questions[answers[1]][this.lang])
+        $('#button_3 .gv_bb_button_text').text(questions[answers[2]][this.lang])
+        $('#button_4 .gv_bb_button_text').text(questions[answers[3]][this.lang])
 
         $('.gv_bb_button_text').css('font-size', get_size('.gv_bb_button').y*0.27)
     },
@@ -610,7 +676,6 @@ var graph_core = {
         if (tech_core.user_type == 'tv') {
             $('.gv_bb_button_hover').attr('class', 'gv_bb_button')
         }
-
 
         var isMobile = {
             Android: function() {
@@ -647,7 +712,7 @@ var graph_core = {
         var step = game_core.data.history.length-1;
 
         //$('#gv_tb_left_block_span').text((step+1) + ' '+ text['gv_tb_left_block_span'][graph_core.lang] + ' 99')
-        $('#gv_tb_left_block_span').text('вопрос '+ (step+1))
+        $('#gv_tb_left_block_span').text('Вопрос '+ (step+1))
     },
     "update_progress_bar": function() {
         var full_step_h = 88.6/850 * get_size('#gv_left_block').y;
@@ -678,8 +743,8 @@ var graph_core = {
         } else if (game_core.data.streak > 30 && game_core.data.streak <= 50) {
             var cur_step_h = ((game_core.data.streak - 30) / (50-30)) * full_step_h
             set_size('#gv_left_block_progress_hider', 'none', get_size('#gv_left_block').y - margin - circle_h - full_step_h*6 - cur_step_h)
-        } else if (game_core.data.streak > 50 && game_core.data.streak <= 99) {
-            var cur_step_h = ((game_core.data.streak - 50) / (99-50)) * full_step_h
+        } else if (game_core.data.streak > 50 && game_core.data.streak <= WINNER_STREAK) {
+            var cur_step_h = ((game_core.data.streak - 50) / (WINNER_STREAK-50)) * full_step_h
             set_size('#gv_left_block_progress_hider', 'none', get_size('#gv_left_block').y - margin - circle_h - full_step_h*7 - cur_step_h)
         }
     },
@@ -749,19 +814,19 @@ var graph_core = {
         } else if (game_core.data.streak == 50) {
             tech_core.send_ym_report('50_answers')
             $('#gv_gob_pic').css('background', 'url("images/card_8.png")')
-        } else if (game_core.data.streak == 99) {
+        } else if (game_core.data.streak == FILMS_AMOUNT) {
             tech_core.send_ym_report('99_answers')
             $('#gv_gob_pic').css('background', 'url("images/card_9.png")')
         }
+        $('#gv_gob_pic').css('background-size', '100%')
 
         if (tech_core.user_type == 'tv') {
             tech_core.tv_data.strike_block_opened = true
             $('#tv_text').css('display', 'block')
         }
 
-        $('#gv_gob_pic').css('background-size', '100%')
         if (tech_core.platform != 'vk') {
-            $('#gv_strike_block_back').fadeIn(1000*ANIMATION)
+            $('#gv_strike_block_back').fadeIn(ANIMATION*1000)
         } else {
             $('#gv_gob_pic_result').css('display', 'none')
         
@@ -773,21 +838,21 @@ var graph_core = {
             $('#gv_gob_button_1 .gv_gob_button_text').css('display', 'table-cell')
 
             $('#gv_gob_button_1 .gv_gob_button_text').text('Поделиться на странице')
-            $('#gv_gob_button_1 .gv_gob_button_text').attr('onclick', "tech_core.send_post();graph_core.hide_strike_block();game_core.get_next_answer();")         
+            $('#gv_gob_button_1 .gv_gob_button_text').attr('onclick', "tech_core.send_post();graph_core.hide_strike_block();game_core.get_next_answer(false);")         
 
             $('#gv_gob_button_2 .gv_gob_button_text').text('Дальше')
-            $('#gv_gob_button_2 .gv_gob_button_text').attr('onclick', "graph_core.hide_strike_block();game_core.get_next_answer();")   
+            $('#gv_gob_button_2 .gv_gob_button_text').attr('onclick', "graph_core.hide_strike_block();game_core.get_next_answer(false);")   
 
             $('#gv_gob_button_1').attr('id', 'gv_gob_button_1_hp')
 
-            $('#gv_game_over_block_back').fadeIn(1000*ANIMATION)
+            $('#gv_game_over_block_back').fadeIn(ANIMATION*1000)
 
         }
 
 
     },
     "hide_strike_block": function() {
-        //$('#gv_strike_block_back').fadeOut(1000*ANIMATION)
+        //$('#gv_strike_block_back').fadeOut(ANIMATION*1000)
         $('#gv_strike_block_back').css('display', 'none')
         if (tech_core.platform == 'vk') {
             $('#gv_game_over_block_back').css('display', 'none')
@@ -814,7 +879,7 @@ var graph_core = {
             $('#gv_strike_block').css('background', 'url("images/card_7.png")')
         } else if (game_core.data.streak == 50) {
             $('#gv_strike_block').css('background', 'url("images/card_8.png")')
-        } else if (game_core.data.streak == 99) {
+        } else if (game_core.data.streak == FILMS_AMOUNT) {
             $('#gv_strike_block').css('background', 'url("images/card_9.png")')
         }
         $('#gv_strike_block').css('background-size', '100%')
@@ -854,7 +919,7 @@ var graph_core = {
         $('#gv_game_over_block_back').fadeIn(1000*ANIMATION)
     },
     "hide_game_over_block": function() {
-        $('#gv_game_over_block_back').fadeOut(1000*ANIMATION)
+        $('#gv_game_over_block_back').fadeOut(ANIMATION*1000)
     },
     "update_game_over_block": function() {
         var html_result = ``
@@ -864,18 +929,28 @@ var graph_core = {
         html_result += '<br>'
         html_result += text.gv_gob_pic_result_2[graph_core.lang]
 
-        
-        html_result += rangs[String(game_core.data.streak_history[game_core.data.streak_history.length-1])][graph_core.lang]
+        //if ([1,3,5,10,15,20,35,50,70].includes(game_core.data.streak)) {
+            html_result += rangs[String(game_core.data.cur_streak_point)][graph_core.lang]
 
+        //}
+
+        
         $('#gv_gob_pic_result').html(html_result)
     },
     "show_winner_block": function() {
+
+        
+
         $('#gv_gob_pic').css('background', 'url("images/card11.png")')
         $('#gv_gob_pic').css('background-size', '100%')
 
         $('#gv_gob_pic_result').css('display', 'none')
-        $('#link_to_group').css('display', 'none')
-        $('#gv_gob_button_1 .gv_gob_button_text').css('display', 'table-cell')
+
+        $('#link_to_group').text('Другие наши викторины!');
+        $('#link_to_group').attr('href', 'https://yandex.ru/games/developer?name=Ingenium%20dev&query=quiz');
+        $('#link_to_group').css('display', 'table-cell')
+
+        $('#gv_gob_button_1 .gv_gob_button_text').css('display', 'none')
 
         $('#gv_gob_button_1').attr('id', 'gv_gob_button_1_hp')
 
@@ -892,79 +967,101 @@ var graph_core = {
             graph_core.tv_update_cursor();
         }
 
-        $('#gv_game_over_block_back').fadeIn(1000*ANIMATION)
+        $('#gv_game_over_block_back').fadeIn(ANIMATION*1000)
     },
     "hide_winner_block": function() {
-        $('#gv_game_over_block_back').fadeOut(1000*ANIMATION)
+        $('#gv_game_over_block_back').fadeOut(ANIMATION*1000)
+    },
+    "try_to_show_get_review_block": function() {
+        if (tech_core.platform == 'yandex') {
+            tech_core.sdk.feedback.canReview()
+                .then(({ value, reason }) => {
+                    if (value) {
+                        graph_core.show_get_review_block();
+                        tech_core.sdk.feedback.requestReview()
+                            .then(({ feedbackSent }) => {
+                                console.log(feedbackSent);
+                                graph_core.hide_get_review_block();
+                                
+                        })
+                } else {
+                    console.log(reason)
+                }
+            })
+        } else {
+            graph_core.show_get_review_block();
+        }
     },
     "show_get_review_block": function() {
-        
+        if (game_core.data.lifes > 0) {
 
-        $('#gv_gob_pic_result').css('display', 'none')
+            $('#gv_gob_pic_result').css('display', 'none')
 
-        $('#gv_gob_button_1_hp').attr('id', 'gv_gob_button_1')
+            $('#gv_gob_button_1_hp').attr('id', 'gv_gob_button_1')
 
 
-        if (tech_core.platform == 'vk') {
-            $('#gv_gob_button_1 .gv_gob_button_text').text('Вступить в группу!')
-            $('#gv_gob_button_2 .gv_gob_button_text').text('Позже вступить')
-            $('#gv_gob_pic').css('background', 'url("images/card13.png")')
-        } else {
-            $('#gv_gob_button_1 .gv_gob_button_text').text(text.gv_get_review_button_1_text[graph_core.lang])
+            if (tech_core.platform == 'vk') {
+                $('#gv_gob_button_1 .gv_gob_button_text').text('Вступить в группу!')
+                $('#gv_gob_button_2 .gv_gob_button_text').text('Позже вступить')
+                $('#gv_gob_pic').css('background', 'url("images/card13.png")')
+            } else {
+                $('#gv_gob_button_1 .gv_gob_button_text').text(text.gv_get_review_button_1_text[graph_core.lang])
+                $('#gv_gob_button_2 .gv_gob_button_text').text(text.gv_get_review_button_2_text[graph_core.lang])
+                $('#gv_gob_pic').css('background', 'url("images/card12.png")')
+            
+            }
+
+            $('#link_to_group').css('display', 'none')
+            $('#gv_gob_button_1 .gv_gob_button_text').css('display', 'table-cell')
+
+            $('#gv_gob_pic').css('background-size', '100%')
+            
+            $('#gv_gob_button_1 .gv_gob_button_text').attr('onclick', "game_core.get_review();graph_core.hide_get_review_block();")
+
+            $('#gv_gob_button_1').attr('id', 'gv_gob_button_1_hp')
+
             $('#gv_gob_button_2 .gv_gob_button_text').text(text.gv_get_review_button_2_text[graph_core.lang])
-            $('#gv_gob_pic').css('background', 'url("images/card12.png")')
-        
+            $('#gv_gob_button_2 .gv_gob_button_text').attr('onclick', "graph_core.hide_get_review_block();game_core.get_next_answer(false);")
+
+            $('#gv_game_over_block_back').fadeIn(ANIMATION*1000)
         }
-
-        $('#link_to_group').css('display', 'none')
-        $('#gv_gob_button_1 .gv_gob_button_text').css('display', 'table-cell')
-
-        $('#gv_gob_pic').css('background-size', '100%')
-        
-        $('#gv_gob_button_1 .gv_gob_button_text').attr('onclick', "game_core.get_review();graph_core.hide_get_review_block();")
-
-        $('#gv_gob_button_1').attr('id', 'gv_gob_button_1_hp')
-
-        $('#gv_gob_button_2 .gv_gob_button_text').text(text.gv_get_review_button_2_text[graph_core.lang])
-        $('#gv_gob_button_2 .gv_gob_button_text').attr('onclick', "graph_core.hide_get_review_block();game_core.get_next_answer();")
-
-        $('#gv_game_over_block_back').fadeIn(1000*ANIMATION)
     },
     "hide_get_review_block": function() {
 
         $('#gv_game_over_block_back').css('display', 'none')
     },
     "show_join_group_block": function() {
-        tech_core.send_ym_report("vk_view_group_block")
-        
-        
-         $('#gv_gob_pic_result').css('display', 'none')
+        if (game_core.data.lifes > 0) {
+            $('#gv_gob_pic_result').css('display', 'none')
 
-        $('#gv_gob_button_1_hp').attr('id', 'gv_gob_button_1')
+            $('#gv_gob_button_1_hp').attr('id', 'gv_gob_button_1')
 
 
-        $('#gv_gob_button_1 .gv_gob_button_text').text('Вступить в группу!')
-        $('#gv_gob_button_2 .gv_gob_button_text').text('Позже вступить')
-        $('#gv_gob_pic').css('background', 'url("images/card13.png")')
-        
-
-        $('#gv_gob_pic').css('background-size', '100%')
+            $('#gv_gob_button_1 .gv_gob_button_text').text('Вступить в группу!')
+            $('#gv_gob_button_2 .gv_gob_button_text').text('Позже вступить')
+            $('#gv_gob_pic').css('background', 'url("images/card13.png")')
             
 
-        if (tech_core.platform == 'vk') {
-            $('#gv_gob_button_1 .gv_gob_button_text').css('display', 'table-cell')
-            $('#gv_gob_button_1 .gv_gob_button_text').attr('onclick', "tech_core.join_group();")
-        } else {
-            $('#link_to_group').css('display', 'table-cell')
-            $('#gv_gob_button_1 .gv_gob_button_text').css('display', 'none')
+            $('#gv_gob_pic').css('background-size', '100%')
+                
+
+            if (tech_core.platform == 'vk') {
+                $('#gv_gob_button_1 .gv_gob_button_text').css('display', 'table-cell')
+                $('#gv_gob_button_1 .gv_gob_button_text').attr('onclick', "tech_core.join_group();")
+            } else {
+                $('#link_to_group').attr('href', 'https://vk.com/ingenium_games');
+                $('#link_to_group').text('Вступить!')
+                $('#link_to_group').css('display', 'table-cell')
+                $('#gv_gob_button_1 .gv_gob_button_text').css('display', 'none')
+            }
+            
+            $('#gv_gob_button_1').attr('id', 'gv_gob_button_1_hp')
+
+            //$('#gv_gob_button_2 .gv_gob_button_text').text(text.gv_get_review_button_2_text[graph_core.lang])
+            $('#gv_gob_button_2 .gv_gob_button_text').attr('onclick', "graph_core.hide_join_group_block();game_core.get_next_answer(false);")
+
+            $('#gv_game_over_block_back').fadeIn(ANIMATION*1000)
         }
-        
-        $('#gv_gob_button_1').attr('id', 'gv_gob_button_1_hp')
-
-        //$('#gv_gob_button_2 .gv_gob_button_text').text(text.gv_get_review_button_2_text[graph_core.lang])
-        $('#gv_gob_button_2 .gv_gob_button_text').attr('onclick', 'graph_core.hide_join_group_block();game_core.get_next_answer();tech_core.send_ym_report("vk_rejected_join_group_btn");')
-
-        $('#gv_game_over_block_back').fadeIn(1000*ANIMATION)
     },  
     "hide_join_group_block": function() {
         $('#gv_game_over_block_back').css('display', 'none')
@@ -991,6 +1088,9 @@ var graph_core = {
         $('.gv_gob_button_hover').attr('class', "gv_gob_button")
         $('#gv_gob_button_1_hp_hover').attr('id', 'gv_gob_button_1_hp')
         if (tech_core.tv_data.cur_window == 'game') {
+
+            
+
 
             var cursor_id = '#button_' + tech_core.tv_data.cursor_pos;
             $(cursor_id).attr('class', 'gv_bb_button_hover')
@@ -1068,7 +1168,9 @@ var game_core = {
         "streak_history": ['0'],
         "right_answers": 0,
         "gotten_review": false,
-        "joined_group": false
+        "joined_group": false,
+        "available_questions": [],
+        "cur_streak_point": 0
     },
     "start_game": function() {
         if (tech_core.platform == 'yandex') {
@@ -1086,7 +1188,7 @@ var game_core = {
 
 
         graph_core.open_game_viewport();
-       
+        
         tech_core.load_progress();
         
 
@@ -1112,7 +1214,10 @@ var game_core = {
             game_core.data.history.pop();
             var next_quest_num = get_random_elements(game_core.data.available_questions)[0]
             game_core.create_question(next_quest_num)
+
         }
+
+        
 
         graph_core.update_progress_bar();
         graph_core.update_streak_counter();
@@ -1121,24 +1226,36 @@ var game_core = {
         graph_core.update_hearts();
 
         if (game_core.data.lifes < 1) {
-            //graph_core.show_game_over_block();
+            graph_core.show_game_over_block();
             game_core.restart_game();
         }
-
-        graph_core.resize_screen();
     },
-    "create_question": function(film_num) {
-        //console.log('->', film_num)
-        graph_core.change_frame(film_num)
+    "create_question": function(question_num) {
+        //console.log(question_num)
+        //question_num = 51;
+        graph_core.change_frame(question_num)
 
-        var answers = tech_core.get_answers(film_num)
+        var answers = tech_core.get_answers(question_num)
 
         graph_core.update_buttons(answers)
-        game_core.data.history.push(film_num)
-    },
-    "get_next_answer": function() {
-        
+        game_core.data.history.push(question_num)
 
+        ym_params_obj = {};
+        Object.defineProperty(ym_params_obj, "question_"+question_num, {
+          value: "opened",
+          writable: true,
+          enumerable: true,
+          configurable: true,
+        });
+        ym(YM_NUMBER, "params", ym_params_obj)
+
+    },
+    "get_next_answer": function(flash = true) {
+        
+        if (flash == false) {
+            ANIMATION = false
+        }
+        
         
         
         if (game_core.data.lifes < 1) {
@@ -1148,34 +1265,40 @@ var game_core = {
             tech_core.save_progress();
         } else {
 
-            if (game_core.data.streak == WINNER_STREAK) {
+            if (game_core.data.streak == WINNER_STREAK || (game_core.data.history.length >= FILMS_AMOUNT && game_core.data.mistakes_history.length == 0)) {
                 graph_core.show_winner_block();
             } else {
+                //var next_quest_num = get_random_num(1, FILMS_AMOUNT, game_core.data.history)
                 var next_quest_num = get_random_elements(game_core.data.available_questions)[0]
+                console.log(next_quest_num)
                 // делаем предзагрузку
-               
+                //$('#frame_preloader').attr('src', "images/frames/"+next_quest_num+".jpg");
                 setTimeout(function() {
-
-                    //tech_core.show_interstitial_ad();
-                    $('#game_viewport').fadeOut(FLASH_DELAY_1)
+                    if (tech_core.platform != 'yandex' || tech_core.ysdk_flags.EXPERIMENT_1 == '1') {
+                        tech_core.show_interstitial_ad();
+                    }
+                    $('#game_viewport').fadeOut(ANIMATION*FLASH_DELAY_1)
                     
 
                     setTimeout(function() { 
                         if (game_core.data.history.length < FILMS_AMOUNT) {
-                            $('#game_viewport').fadeIn(FLASH_DELAY_2)
+                            $('#game_viewport').fadeIn(ANIMATION*FLASH_DELAY_2)
                             
                             game_core.create_question(next_quest_num);
                             graph_core.update_step_text();
                         } else {
-                            $('#game_viewport').fadeIn(FLASH_DELAY_2)
+                            $('#game_viewport').fadeIn(ANIMATION*FLASH_DELAY_2)
                             game_core.create_question(next_quest_num);
                             graph_core.update_step_text();
                         }
                         tech_core.save_progress();
                         graph_core.activate_buttons();
                         graph_core.reset_buttons();
-                    }, FLASH_DELAY_1)
-                }, DELAY_BEFORE_FLASHING)
+                        if (flash == false) {
+                            ANIMATION = 1
+                        }
+                    }, ANIMATION*FLASH_DELAY_1)
+                }, ANIMATION*DELAY_BEFORE_FLASHING)
             }
         }
     },
@@ -1183,12 +1306,12 @@ var game_core = {
         var answer_text = button_html.innerText;
         var right_ans_id;
         for (var i=0; i < 4; i++) {
-            if ($('#'+(i+1)).text() == films[game_core.data.history[game_core.data.history.length-1]][graph_core.lang]) {
+            if ($('#'+(i+1)).text() == questions[game_core.data.history[game_core.data.history.length-1]][graph_core.lang]) {
                 right_ans_id = i;
             }
         }
 
-        if (films[game_core.data.history[game_core.data.history.length-1]][graph_core.lang] == answer_text) {
+        if (questions[game_core.data.history[game_core.data.history.length-1]][graph_core.lang] == answer_text) {
             graph_core.make_button_green(button_html.id)
             game_core.data.streak += 1
             game_core.data.right_answers +=1    
@@ -1197,7 +1320,14 @@ var game_core = {
                 game_core.data.mistakes_history = delete_val(game_core.data.mistakes_history, right_ans_film)
             }
             game_core.data.available_questions = delete_val(game_core.data.available_questions, right_ans_film)
-       
+             ym_params_obj = {};
+            Object.defineProperty(ym_params_obj, "question_"+game_core.data.history[game_core.data.history.length-1], {
+              value: "right",
+              writable: true,
+              enumerable: true,
+              configurable: true,
+            });
+            ym(YM_NUMBER, "params", ym_params_obj)
         } else {
             var right_ans_film = game_core.data.history[game_core.data.history.length-1];
             game_core.data.streak = 0
@@ -1210,7 +1340,14 @@ var game_core = {
             if (game_core.data.mistakes_history.includes(right_ans_film) == false) {
                 game_core.data.mistakes_history.push(right_ans_film)
             }
-            
+             ym_params_obj = {};
+            Object.defineProperty(ym_params_obj, "question_"+game_core.data.history[game_core.data.history.length-1], {
+              value: "wrong",
+              writable: true,
+              enumerable: true,
+              configurable: true,
+            });
+            ym(YM_NUMBER, "params", ym_params_obj)
         }
 
         graph_core.deactivate_buttons();
@@ -1218,6 +1355,10 @@ var game_core = {
         graph_core.update_progress_bar();
         graph_core.update_streak_counter();
         graph_core.update_strike_block();
+
+        if ([1,3,5,10,15,20,30,50,WINNER_STREAK].includes(game_core.data.streak)) {
+            game_core.data.cur_streak_point = game_core.data.streak;
+        }
 
         if ([1,3,5,10,15,20,30,50,99].includes(game_core.data.streak) && game_core.data.streak_history.includes(game_core.data.streak) == false && SHOW_STRIKE_BLOCK) {
             game_core.data.streak_history.push(game_core.data.streak)
@@ -1233,7 +1374,7 @@ var game_core = {
                 tech_core.save_progress();
             }
         } else if ([1,3,5,10,15,20,30,50,99].includes(game_core.data.streak) == false && game_core.data.history.length > 16 && game_core.data.joined_group == false && tech_core.user_type != 'tv') {
-            if (tech_core.platform != 'vk') {
+            if (tech_core.platform != 'vk' && tech_core.platform != 'yandex') {
                 game_core.data.joined_group = true
                 graph_core.show_join_group_block();
                 tech_core.save_progress();
@@ -1242,15 +1383,14 @@ var game_core = {
             }
         } else {
             game_core.get_next_answer();
-        }
-
-        
-        
+        }   
     },
     "restart_game": function() {
         var gotten_review = game_core.data.gotten_review;
-        var joined_group = game_core.data.joined_group
+        var joined_group = game_core.data.joined_group;
         var streak_history = game_core.data.streak_history;
+
+
         game_core.data = {
             "history": [],
             "mistakes_history": [],
@@ -1261,7 +1401,9 @@ var game_core = {
             "gotten_review": gotten_review,
             "joined_group": joined_group,
             "available_questions": [],
+            "cur_streak_point": 0
         }
+
         for (var i = 0; i < FILMS_AMOUNT; i++) {
             game_core.data.available_questions.push(i+1)
         }
@@ -1285,18 +1427,48 @@ var game_core = {
         }
     },
     "recover_heart": function() {
+        if (tech_core.ysdk_flags.EXPERIMENT_1 != '1') {
+            tech_core.show_rewarded_video(function() {
+                game_core.data.lifes += 1
+                graph_core.recover_heart();
+                graph_core.hide_game_over_block();
+                graph_core.reset_buttons();
+                graph_core.activate_buttons();
+                if (tech_core.user_type == 'tv') {
+                    tech_core.tv_data.cur_window = 'game'
+                    graph_core.tv_update_cursor();
+                }
+                tech_core.save_progress();
+            })
+        } else {
+            tech_core.show_interstitial_ad_callback(function() {
+                game_core.data.lifes += 1
+                graph_core.recover_heart();
+                graph_core.hide_game_over_block();
+                graph_core.reset_buttons();
+                graph_core.activate_buttons();
+                if (tech_core.user_type == 'tv') {
+                    tech_core.tv_data.cur_window = 'game'
+                    graph_core.tv_update_cursor();
+                }
+                tech_core.save_progress();
+            }, function() {
+                //console.log('[tech_core] experiment 1 failed');
+                tech_core.show_rewarded_video(function() {
+                    game_core.data.lifes += 1
+                    graph_core.recover_heart();
+                    graph_core.hide_game_over_block();
+                    graph_core.reset_buttons();
+                    graph_core.activate_buttons();
+                    if (tech_core.user_type == 'tv') {
+                        tech_core.tv_data.cur_window = 'game'
+                        graph_core.tv_update_cursor();
+                    }
+                    tech_core.save_progress();
+                })
+            })
+        }
 
-        tech_core.show_rewarded_video(function() {
-            game_core.data.lifes += 1
-            graph_core.recover_heart();
-            graph_core.hide_game_over_block();
-            graph_core.reset_buttons();
-            graph_core.activate_buttons();
-            if (tech_core.user_type == 'tv') {
-                tech_core.tv_data.cur_window = 'game'
-                graph_core.tv_update_cursor();
-            }
-        })
     },
     "go_to_hp_quiz": function() {
         
@@ -1329,24 +1501,53 @@ var game_core = {
         }
         game_core.data.gotten_review = true;
         tech_core.save_progress();
-        game_core.get_next_answer();
+        game_core.get_next_answer(false);
     },
-
-    "answer_question_right": function() {
+    "answer_question_right": function(amount) {
         var right_ans_id;
         for (var i=0; i < 4; i++) {
-            if ($('#'+(i+1)).text() == films[game_core.data.history[game_core.data.history.length-1]][graph_core.lang]) {
+            if ($('#'+(i+1)).text() == questions[game_core.data.history[game_core.data.history.length-1]]['right_answer'][graph_core.lang]) {
                 right_ans_id = i;
             }
         }
         console.log($('#'+(right_ans_id+1)))
         game_core.answer_question(document.getElementById((right_ans_id+1)))
     },
+    "force_restart_game": function() {
+        game_core.data = {
+            "history": [],
+            "mistakes_history": [],
+            "lifes": 3,
+            "streak": 0,
+            "streak_history": ['0'],
+            "right_answers": 0,
+            "gotten_review": false,
+            "joined_group": false,
+            "available_questions": [],
+            "cur_streak_point": 0
+        }
+        tech_core.save_progress();
+        game_core.start_game();
+    },
+    "answers_all_questions_right": function() {
+        for (var i = 0; i < FILMS_AMOUNT; i++) {
+            setTimeout(function() {
+                game_core.answer_question_right();
+            }, 500)
+        }
+    },
     "exit_game": function() {
         if (tech_core.platform == 'yandex') {
-            tech_core.sdk.dispatchEvent(tech_core.sdk.EVENTS.EXIT);
+            tech_core.sdk.dispatchEvent(ysdk.EVENTS.EXIT);
         }
-    }
+    },
+    "answer_questions_right": function(amount=1) {
+        for (var i = 0; i < amount; i++) {
+            setTimeout(function() {
+                game_core.answer_question_right();
+            }, 500)
+        }
+    },
 }
 
 var make_screenshot = function() {
